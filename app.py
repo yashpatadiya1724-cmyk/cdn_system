@@ -990,9 +990,8 @@ if __name__ == "__main__":
     print("║  ⛔  Press Ctrl+C to stop                                       ║")
     print("╚══════════════════════════════════════════════════════════════════╝")
     print()
-
-    # Open browser in background thread
+# Open browser in background thread
     threading.Thread(target=open_browser, daemon=True).start()
 
     # Start server (blocking)
-    uvicorn.run(app, host=HOST, port=PORT, log_level="warning")
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), log_level="warning")
