@@ -26,7 +26,8 @@ import random
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel 
+import os
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  CHATBOT LOGIC
@@ -989,8 +990,7 @@ if __name__ == "__main__":
     print("║  🔒  Fully anonymous — no data stored                           ║")
     print("║  ⛔  Press Ctrl+C to stop                                       ║")
     print("╚══════════════════════════════════════════════════════════════════╝")
-    print()
-# Open browser in background thread
+    # Open browser in background thread
     threading.Thread(target=open_browser, daemon=True).start()
 
     # Start server (blocking)
