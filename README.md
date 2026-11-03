@@ -1,5 +1,9 @@
 # ⚡ CDN System — Full Stack Content Delivery Network
 
+[![PyCDN Automated CI](https://github.com/yashpatadiya1724-cmyk/cdn_system/actions/workflows/ci.yml/badge.svg)](https://github.com/yashpatadiya1724-cmyk/cdn_system/actions/workflows/ci.yml)
+[![Python 3.11 | 3.12](https://img.shields.io/badge/Python-3.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A production-style CDN built with Python (FastAPI) featuring origin/edge servers,
 caching, load balancing, rate limiting, and a live monitoring dashboard.
 
@@ -22,26 +26,33 @@ Dashboard (8090)  →  polls all servers
 ```
 cdn_system/
 ├── backend/
-│   ├── origin_server.py    # Master file storage server
-│   ├── edge_server.py      # Cache + delivery server (run multiple)
-│   ├── load_balancer.py    # Round-robin LB with health checks
-│   ├── cache_manager.py    # TTL cache with LRU eviction
-│   └── dashboard.py        # Real-time monitoring UI
+│   ├── origin_server.py       # Master file storage server
+│   ├── edge_server.py         # Cache + delivery server (run multiple)
+│   ├── load_balancer.py       # Round-robin LB with health checks
+│   ├── cache_manager.py       # Disk TTL cache with LRU eviction
+│   ├── redis_lru_cache.py     # Fast in-memory LRU cache with ETag HTTP 304
+│   └── dashboard.py           # Real-time monitoring UI
 ├── config/
-│   └── cdn_config.py       # Central configuration
+│   └── cdn_config.py          # Central configuration
 ├── static/
-│   ├── images/             # Put your images here
-│   ├── css/                # CSS files
-│   ├── js/                 # JavaScript files
-│   └── videos/             # Video files
+│   ├── images/                # Static image assets
+│   ├── css/                   # Stylesheet assets
+│   ├── js/                    # JavaScript assets
+│   └── videos/                # Video media assets
 ├── cache/
-│   ├── edge-1/             # Edge 1 disk cache
-│   └── edge-2/             # Edge 2 disk cache
+│   ├── edge-1/                # Edge 1 disk cache
+│   └── edge-2/                # Edge 2 disk cache
+├── tests/
+│   ├── test_cache_manager.py  # Disk cache TTL and size tests
+│   ├── test_load_balancer.py  # LB routing & 503 failover tests
+│   └── test_redis_lru_cache.py# In-memory LRU & ETag HTTP 304 tests
 ├── logs/
-│   └── cdn.log             # Unified log file
+│   └── cdn.log                # Unified log file
 ├── requirements.txt
-├── start_cdn.sh            # One-command startup
-└── stop_cdn.sh             # Graceful shutdown
+├── start_cdn.sh               # One-command startup (Linux/macOS)
+├── start_cdn.ps1              # One-command startup (Windows PowerShell)
+├── stop_cdn.sh                # Graceful shutdown
+└── LICENSE                    # MIT License
 ```
 
 ---
@@ -57,10 +68,21 @@ source venv/bin/activate       # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Start everything (one command)
+### 2. Run automated test suite
+
+```bash
+pytest tests/ -v
+```
+
+### 3. Start everything (one command)
 
 ```bash
 ./start_cdn.sh
+```
+
+Or on Windows:
+```powershell
+.\start_cdn.ps1
 ```
 
 Or start each server manually:
@@ -156,7 +178,8 @@ CACHE_TTL=600 MAX_CACHE_MB=1024 ./start_cdn.sh
 |---|---|
 | **Origin Server** | Serves raw files from `/static`, lists inventory |
 | **Edge Cache** | Disk-backed TTL cache with hit tracking & LRU eviction |
-| **Load Balancer** | Round-robin across healthy edges, auto health checks |
+| **In-Memory Tier** | O(1) Redis-style LRU cache with sha256 ETag HTTP 304 validation |
+| **Load Balancer** | Least-connection / round-robin across healthy edges, auto health checks |
 | **Cache Expiry** | Per-file TTL with visual countdown in dashboard |
 | **Rate Limiting** | Per-IP slowapi limit on each edge |
 | **Cache API** | Clear all / evict single file via REST |
@@ -186,3 +209,9 @@ curl http://localhost:8080/cdn/videos/my-video.mp4
 ```bash
 ./stop_cdn.sh
 ```
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

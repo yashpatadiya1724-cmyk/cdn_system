@@ -7,3 +7,4 @@ cache/edge-2/
 logs/*.log
 .env
 *.zip
+.pytest_cache/
