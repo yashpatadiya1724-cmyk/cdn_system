@@ -10,6 +10,7 @@ import asyncio
 import logging
 from pathlib import Path
 from itertools import cycle
+from contextlib import asynccontextmanager
 from typing import List, Dict
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response, JSONResponse
@@ -33,14 +34,6 @@ logging.basicConfig(
 logger = logging.getLogger("cdn.lb")
 
 # ── State ──────────────────────────────────────────────────────
-app = FastAPI(title="CDN Load Balancer", version="1.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 server_pool: List[Dict] = [
     {**s, "healthy": True, "requests": 0, "errors": 0, "last_check": 0.0}
     for s in EDGE_SERVERS
@@ -65,10 +58,27 @@ async def health_check_loop():
             logger.debug(f"Health {srv['id']}: {'UP' if srv['healthy'] else 'DOWN'}")
 
 
-@app.on_event("startup")
-async def startup():
-    asyncio.create_task(health_check_loop())
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(health_check_loop())
     logger.info("Load Balancer started. Health checks every 10 s.")
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(title="CDN Load Balancer", version="1.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ── Request routing ─────────────────────────────────────────────
