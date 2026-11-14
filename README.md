@@ -53,7 +53,6 @@ cdn_system/
 ├── logs/
 │   └── cdn.log                # Unified log file
 ├── .env.example               # Environment variables template
-├── railway.json               # Railway config (note: startCommand runs app.py, which is not part of PyCDN)
 ├── requirements.txt
 ├── start_cdn.sh               # One-command startup (Linux/macOS)
 ├── start_cdn.ps1              # One-command startup (Windows PowerShell)
