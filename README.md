@@ -31,6 +31,8 @@ cdn_system/
 │   ├── load_balancer.py       # Round-robin LB with health checks
 │   ├── cache_manager.py       # Disk TTL cache with LRU eviction
 │   ├── redis_lru_cache.py     # Fast in-memory LRU cache with ETag HTTP 304
+│   ├── edge_eviction.py       # Cache purge engine (exact key & wildcard tags)
+│   ├── url_signer.py          # HMAC-SHA256 signed token generator & validator
 │   └── dashboard.py           # Real-time monitoring UI
 ├── config/
 │   └── cdn_config.py          # Central configuration
@@ -44,10 +46,14 @@ cdn_system/
 │   └── edge-2/                # Edge 2 disk cache
 ├── tests/
 │   ├── test_cache_manager.py  # Disk cache TTL and size tests
+│   ├── test_edge_eviction.py  # Cache eviction engine tests
 │   ├── test_load_balancer.py  # LB routing & 503 failover tests
-│   └── test_redis_lru_cache.py# In-memory LRU & ETag HTTP 304 tests
+│   ├── test_redis_lru_cache.py# In-memory LRU & ETag HTTP 304 tests
+│   └── test_url_signer.py     # HMAC token signature & expiration tests
 ├── logs/
 │   └── cdn.log                # Unified log file
+├── .env.example               # Environment variables template
+├── railway.json               # Railway config (note: startCommand runs app.py, which is not part of PyCDN)
 ├── requirements.txt
 ├── start_cdn.sh               # One-command startup (Linux/macOS)
 ├── start_cdn.ps1              # One-command startup (Windows PowerShell)
