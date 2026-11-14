@@ -63,3 +63,28 @@ def test_pick_server_raises_503_when_no_healthy_edges():
     finally:
         for idx, s in enumerate(original_state):
             server_pool[idx] = s
+
+
+import asyncio
+from unittest import mock
+from fastapi.testclient import TestClient
+from backend.load_balancer import app
+
+
+def test_load_balancer_lifespan_starts_and_cancels_background_task():
+    task_ref = None
+    orig_create_task = asyncio.create_task
+
+    def mock_create_task(coro):
+        nonlocal task_ref
+        task = orig_create_task(coro)
+        task_ref = task
+        return task
+
+    with mock.patch("backend.load_balancer.asyncio.create_task", side_effect=mock_create_task):
+        with TestClient(app) as client:
+            assert task_ref is not None
+            assert not task_ref.done()
+
+        assert task_ref.done()
+        assert task_ref.cancelled()
