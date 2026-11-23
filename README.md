@@ -1,6 +1,7 @@
 # ⚡ CDN System — Full Stack Content Delivery Network
 
 [![PyCDN Automated CI](https://github.com/yashpatadiya1724-cmyk/cdn_system/actions/workflows/ci.yml/badge.svg)](https://github.com/yashpatadiya1724-cmyk/cdn_system/actions/workflows/ci.yml)
+[![Sponsor](https://img.shields.io/badge/Sponsor-yashpatadiya1724--cmyk-ea4aaa?style=flat&logo=github-sponsors)](https://github.com/sponsors/yashpatadiya1724-cmyk)
 [![Python 3.11 | 3.12](https://img.shields.io/badge/Python-3.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
