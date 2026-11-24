@@ -60,8 +60,19 @@ async def log_requests(request: Request, call_next):
 
 @app.get("/files/{file_path:path}")
 async def serve_file(file_path: str):
-    """Serve a file from the static directory."""
-    full_path = ORIGIN_STATIC_DIR / file_path
+    """Serve a file from the static directory with path traversal protection."""
+    try:
+        resolved_static = ORIGIN_STATIC_DIR.resolve()
+        full_path = (ORIGIN_STATIC_DIR / file_path).resolve()
+        # Security: Prevent directory traversal outside of ORIGIN_STATIC_DIR
+        if not str(full_path).startswith(str(resolved_static)):
+            logger.warning(f"SECURITY: Path traversal attempt blocked: {file_path}")
+            raise HTTPException(status_code=403, detail="Access denied: directory traversal not allowed")
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=400, detail="Invalid path request")
+
     if not full_path.exists() or not full_path.is_file():
         logger.warning(f"NOT FOUND: {file_path}")
         raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
