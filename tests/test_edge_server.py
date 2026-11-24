@@ -73,3 +73,27 @@ def test_edge_serve_origin_unreachable_503(client):
     assert response.status_code in [502, 503]
     data = response.json()
     assert "detail" in data
+
+
+def test_edge_serve_etag_and_304_revalidation(client):
+    test_path = "etag_test_asset.txt"
+    test_content = b"ETag-validated asset content for PyCDN edge server"
+    asyncio.run(cache.put(test_path, test_content, "text/plain"))
+
+    # Initial request receives 200 OK + ETag
+    resp1 = client.get(f"/cdn/{test_path}")
+    assert resp1.status_code == 200
+    assert resp1.content == test_content
+    etag = resp1.headers.get("ETag")
+    assert etag is not None and len(etag) > 0
+
+    # Conditional GET with matching If-None-Match yields HTTP 304 Not Modified
+    resp2 = client.get(f"/cdn/{test_path}", headers={"If-None-Match": etag})
+    assert resp2.status_code == 304
+    assert resp2.content == b""
+    assert resp2.headers.get("ETag") == etag
+
+    # Conditional GET with mismatched ETag yields HTTP 200 OK
+    resp3 = client.get(f"/cdn/{test_path}", headers={"If-None-Match": '"tampered-stale-etag"'})
+    assert resp3.status_code == 200
+    assert resp3.content == test_content

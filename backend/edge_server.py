@@ -6,6 +6,7 @@ Run on port 8001 or 8002 (pass --port argument).
 
 import sys
 import time
+import hashlib
 import logging
 import argparse
 from pathlib import Path
@@ -72,6 +73,21 @@ async def serve(request: Request, file_path: str):
     cached = await cache.get(file_path)
     if cached:
         data, content_type = cached
+        etag = f'"{hashlib.md5(data).hexdigest()}"'
+        if_none_match = request.headers.get("if-none-match")
+        if if_none_match and if_none_match.strip() == etag:
+            stats["cache_hits"] += 1
+            logger.info(f"CACHE HIT (304 Not Modified) {file_path}")
+            return Response(
+                status_code=304,
+                headers={
+                    "ETag": etag,
+                    "X-Cache": "HIT",
+                    "X-Edge-Server": EDGE_ID,
+                    "X-Cache-TTL": str(CACHE_TTL_SECONDS),
+                },
+            )
+
         stats["cache_hits"] += 1
         stats["bytes_served"] += len(data)
         logger.info(f"CACHE HIT  {file_path}")
@@ -79,6 +95,7 @@ async def serve(request: Request, file_path: str):
             content=data,
             media_type=content_type,
             headers={
+                "ETag": etag,
                 "X-Cache": "HIT",
                 "X-Edge-Server": EDGE_ID,
                 "X-Cache-TTL": str(CACHE_TTL_SECONDS),
@@ -103,6 +120,7 @@ async def serve(request: Request, file_path: str):
 
     data = origin_resp.content
     content_type = origin_resp.headers.get("content-type", "application/octet-stream")
+    etag = f'"{hashlib.md5(data).hexdigest()}"'
 
     # 3️⃣ Cache & return
     await cache.put(file_path, data, content_type)
@@ -113,6 +131,7 @@ async def serve(request: Request, file_path: str):
         content=data,
         media_type=content_type,
         headers={
+            "ETag": etag,
             "X-Cache": "MISS",
             "X-Edge-Server": EDGE_ID,
             "X-Cache-TTL": str(CACHE_TTL_SECONDS),
