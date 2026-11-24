@@ -88,3 +88,79 @@ def test_load_balancer_lifespan_starts_and_cancels_background_task():
 
         assert task_ref.done()
         assert task_ref.cancelled()
+
+
+def test_load_balancer_health_endpoint():
+    with TestClient(app) as client:
+        response = client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "up"
+        assert data["server"] == "load_balancer"
+        assert "healthy_edges" in data
+
+
+def test_load_balancer_stats_endpoint():
+    with TestClient(app) as client:
+        # Mock httpx.AsyncClient.get for edge stats aggregation
+        mock_response = mock.MagicMock()
+        mock_response.json.return_value = {
+            "edge_id": "edge_1",
+            "uptime_seconds": 120,
+            "requests": 15,
+            "cache_hits": 10,
+            "cache_misses": 5,
+        }
+
+        async def mock_async_get(*args, **kwargs):
+            return mock_response
+
+        with mock.patch("httpx.AsyncClient.get", side_effect=mock_async_get):
+            response = client.get("/stats")
+            assert response.status_code == 200
+            data = response.json()
+            assert "load_balancer" in data
+            assert data["load_balancer"]["total_requests"] >= 0
+            assert "servers" in data
+            assert len(data["servers"]) > 0
+            assert "edge_details" in data
+            assert len(data["edge_details"]) == len(data["servers"])
+
+
+def test_load_balancer_clear_all_caches():
+    with TestClient(app) as client:
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+
+        async def mock_async_delete(*args, **kwargs):
+            return mock_response
+
+        with mock.patch("httpx.AsyncClient.delete", side_effect=mock_async_delete):
+            response = client.delete("/cache")
+            assert response.status_code == 200
+            data = response.json()
+            assert "results" in data
+            for result in data["results"]:
+                assert result["status"] == "cleared"
+
+
+def test_load_balancer_proxy_success():
+    with TestClient(app) as client:
+        mock_response = mock.MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = b"Mock CDN File Content"
+        mock_response.headers = {
+            "content-type": "text/plain",
+            "X-Cache": "HIT",
+        }
+
+        async def mock_async_get(*args, **kwargs):
+            return mock_response
+
+        with mock.patch("httpx.AsyncClient.get", side_effect=mock_async_get):
+            response = client.get("/cdn/assets/mock_logo.png")
+            assert response.status_code == 200
+            assert response.content == b"Mock CDN File Content"
+            assert "X-Routed-To" in response.headers
+            assert response.headers["X-Cache"] == "HIT"
+
