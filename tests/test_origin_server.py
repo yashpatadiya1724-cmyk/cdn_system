@@ -53,3 +53,27 @@ def test_origin_serve_missing_file_returns_404(client):
     assert response.status_code == 404
     data = response.json()
     assert "detail" in data
+
+
+def test_origin_serve_path_traversal_returns_403(client):
+    # Test path traversal attack attempt with URL-encoded traversal tokens
+    response = client.get("/files/%2e%2e/config/cdn_config.py")
+    assert response.status_code == 403
+    data = response.json()
+    assert "directory traversal" in data["detail"].lower()
+
+
+def test_origin_serve_different_allowed_mime_types(client):
+    # Serving index.html produces text/html
+    html_res = client.get("/files/index.html")
+    assert html_res.status_code == 200
+    assert "text/html" in html_res.headers.get("content-type", "")
+
+    # Query list to find other static extensions
+    list_res = client.get("/list")
+    assert list_res.status_code == 200
+    files = list_res.json().get("files", [])
+    for f in files[:3]:
+        rel_path = f["path"].replace("\\", "/")
+        res = client.get(f"/files/{rel_path}")
+        assert res.status_code == 200
